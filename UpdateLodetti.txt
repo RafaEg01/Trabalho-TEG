@@ -3,9 +3,6 @@
 #include <math.h>
 #include <string.h>
 
-
-#define MAX_LINE_LENGTH 1024
-
 typedef struct flower{
     float sepLength;
     float sepWidth;
@@ -13,102 +10,79 @@ typedef struct flower{
     float petWidth;
 } flower;
 
-void distancia_euclideana();
-void achamaioremenor(float *maior, float *menor, float matriz[150][150]);
-void distancia_normalizada(float *maior, float *menor);
+void distancia_euclideana(float matriz[150][150], flower flores[]);
+void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
+void distancia_normalizada(float *maior, float *menor, float matriz[150][150]);
 void printa_matriz(float matriz[150][150]);
+void close_file(int matriz[150][150]);
 
-flower flores[150];
-int matriz_adjacencia[150][150] = {0};
-float matriz_distancias[150][150] = {0};
-float matriz_normalizada[150][150] = {0};
+
 
 int main() {
-    //abertura e leitura arquivo
-    int i = -1;
+    flower flores[150];
+    int matriz_adjacencia[150][150] = {0};
+    float matrix[150][150] = {0};
+    int i = 0;
     float demaior = 0, demenor = 0, denmaior = 0, denmenor = 0;
+    int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0;
     
+    //abertura e leitura arquivo
         FILE *file = fopen("IrisDataset.csv", "r");
         if (file == NULL) {
             printf("Erro ao abrir o arquivo.\n");
-            return 1;
+            return -1;
         }
+        //Pula a primeira linha do csv
+    fscanf(file, "%*[^\n]\n");
 
-        char line[MAX_LINE_LENGTH];
-        fgets(line, sizeof(line), file);
-        while (fgets(line, sizeof(line), file)) {
-            i++;
-            flower f;
-            char *token;
-            token = strtok(line, ",");
-            token = strtok(NULL, ",");
+    //Lê o resto das linhas
+    for(int i = 0; i < 150; i++){
+        fscanf(file, "%*[^,],%f,%f,%f,%f", &flores[i].petLength, &flores[i].petWidth, &flores[i].sepLength, &flores[i].sepWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+        // printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
+    }
 
-            if (token != NULL) {
-                f.sepLength = atof(token);  // Convert string to float
-            }
-            
-            token = strtok(NULL, ",");
-            if (token != NULL){
-            f.sepWidth = atof(token);
-            }
-            
-            token = strtok(NULL, ",");
-            if (token != NULL) {
-                f.petLength = atof(token);
-            }
-
-            token = strtok(NULL, ",");
-            if (token != NULL) {
-                f.petWidth = atof(token);
-            }
-            flores[i] = f;
-        }
-    
-    distancia_euclideana();
-    achamaioremenor(&demaior, &demenor, matriz_distancias);
-    distancia_normalizada(&demaior, &demenor);
-    achamaioremenor(&denmaior, &denmenor, matriz_normalizada);
-    printf("----------Matriz de distancias--------\n");
-    printa_matriz(matriz_distancias);
-    printf("\n--------Matriz Normalizada--------\n");
-    printa_matriz(matriz_normalizada);
-    printf("\n-----------------------------------\n");
+    distancia_euclideana(matrix, flores);
+    achamaioremenor(&demaior, &demenor, matrix, &imaior, &jmaior, &imenor, &jmenor);
+    printa_matriz(matrix);
+    distancia_normalizada(&demaior, &demenor, matrix);
+    //printa_matriz(matrix);
     for(int i = 0; i < 149; i++){
         for(int j = i+1; j < 150; j++){
-            if(matriz_normalizada[i][j] <= 0.3){
-                matriz_adjacencia[i][j] = 1; //tem relacao?
+            if(matrix[i][j] <= 0.3){
+                matriz_adjacencia[i][j] = 1; //tem relacao
                 matriz_adjacencia[j][i] = 1;
             }
         }
     } 
 
-    printf("\n------Matriz de Adjacencia--------------\n");
-    for(int i = 0; i < 150; i++){
-         printf("\nLinha %i-- ", i);
-        for(int j = 0; j < 150; j++){
-            printf("%i ", matriz_adjacencia[i][j]);
-        }
-    }
-        printf("\nDEmaior - %f\nDEmenor: %f\nDENmaior: %f\nDENmenor: %f\n", demaior, demenor, denmaior, denmenor);
+    denmaior = matrix[imaior][jmaior];
+    denmenor = matrix[imenor][jmenor];
+        printf("\nDEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
+        printf("DEmenor: %lf - (%i,%i)\n", demenor, imenor, jmenor);
+        printf("DENmaior: %lf - (%i,%i)\n", denmaior, imaior, jmaior);
+        printf("DENmenor: %lf - (%i,%i)", denmenor, imenor, jmenor);
 
         fclose(file);
+        close_file(matriz_adjacencia);
+        
+        
         return 0;
 }
 
-void distancia_euclideana(){
+void distancia_euclideana(float matrix[150][150], flower flores[]){
     int i = 0, j = 0;
     for(i = 0; i < 149; i++){
         for(j = i+1; j < 150; j++){
-            matriz_distancias[i][j] = sqrt(pow((flores[i].sepLength - flores[j].sepLength), 2) +
-                                            pow((flores[i].sepWidth - flores[j].sepWidth), 2) +
-                                            pow((flores[i].petLength - flores[j].petLength), 2) +
-                                            pow((flores[i].petWidth - flores[j].petWidth), 2));
-            matriz_distancias[j][i] = matriz_distancias[i][j];
+            matrix[i][j] = sqrt(pow((flores[i].sepLength - flores[j].sepLength), 2) +
+                                pow((flores[i].sepWidth - flores[j].sepWidth), 2) +
+                                pow((flores[i].petLength - flores[j].petLength), 2) +
+                                pow((flores[i].petWidth - flores[j].petWidth), 2));
+            matrix[j][i] = matrix[i][j];
         }
     }
 }
 
-void achamaioremenor(float *maior, float *menor, float matriz[150][150]){
+void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d){
     int i = 0, j = 0;
 
     *maior = matriz[0][1];
@@ -117,22 +91,25 @@ void achamaioremenor(float *maior, float *menor, float matriz[150][150]){
         for(j = i+1; j < 150; j++){
             if(matriz[i][j] > *maior){
                 *maior = matriz[i][j];
+                *a = i;
+                *b = j;
             }
-            if(matriz[i][j] < *menor){
+            if((matriz[i][j] < *menor)){
                 *menor = matriz[i][j];
+                *c = i;
+                *d = j;
             }
         }
     }
 }
 
-void distancia_normalizada(float *maior, float *menor){
-    achamaioremenor(maior, menor, matriz_distancias);
+void distancia_normalizada(float *maior, float *menor, float matrix[150][150]){
 
     for(int i = 0; i < 149; i++){
         for(int j = i+1; j < 150; j++){
             if(i != j){
-                matriz_normalizada[i][j] = (matriz_distancias[i][j] - *menor) / (*maior - *menor);
-                matriz_normalizada[j][i] = matriz_normalizada[i][j];
+                matrix[i][j] = (matrix[i][j] - *menor) / (*maior - *menor);
+                matrix[j][i] = matrix[i][j];
             }
         }
     }
@@ -146,4 +123,20 @@ void printa_matriz(float matriz[150][150]){
         }
         printf("\n");
     }
+}
+
+void close_file(int matriz[150][150]){
+    FILE *close = fopen("ArquivoFinal.csv", "w");
+    if(close){
+        for(int i = 0; i < 150; i++){
+            for(int j = 0; j < 150; j++){
+                fprintf(close, "%i", matriz[i][j]);
+                if(j < 149){
+                    fprintf(close, ",");
+                }
+            }
+            fprintf(close, "\n");
+        }
+    }
+    fclose(close);
 }
