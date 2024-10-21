@@ -36,9 +36,10 @@ int main(){
 
     //Preenche a matriz com distâncias euclidianas não normalizadas
     for(int i = 0; i < 150; i++){
-        for(int j = 0; j < 150; j++){
+        for(int j = i+1; j < 150; j++){
             if(i != j){
                 adjMatrix[i][j] = distancia_euclidiana(flowers[i], flowers[j]);
+                adjMatrix[j][i] = adjMatrix[i][j];
             }
         }
     }
