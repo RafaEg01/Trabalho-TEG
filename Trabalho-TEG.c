@@ -11,6 +11,7 @@ typedef struct flower{
 } flower;
 
 float distancia_euclidiana(flower f1, flower f2);
+float normaliza(float x, float maior, float menor);
 
 int main(){
 
@@ -29,22 +30,41 @@ int main(){
     //Lê o resto das linhas
     for(int i = 0; i < 150; i++){
         fscanf(file, "%*[^,],%f,%f,%f,%f", &flowers[i].petLength, &flowers[i].petWidth, &flowers[i].sepLength, &flowers[i].sepWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
-        // printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
     }
 
-    printf("%f\n", distancia_euclidiana(flowers[0], flowers[149]));
+    float temp = 0, maior_DE = 0, menor_DE;
+    int i_maior = 0, j_maior = 0, i_menor = 0, j_menor = 0;
+    temp = distancia_euclidiana(flowers[0], flowers[1]);// inicializa o maior e menor fora do loop
+    maior_DE = temp;
+    menor_DE = temp;
 
     //Preenche a matriz com distâncias euclidianas não normalizadas
     for(int i = 0; i < 150; i++){
         for(int j = i+1; j < 150; j++){
-            if(i != j){
-                adjMatrix[i][j] = distancia_euclidiana(flowers[i], flowers[j]);
-                adjMatrix[j][i] = adjMatrix[i][j];
+            temp = distancia_euclidiana(flowers[i], flowers[j]);
+            adjMatrix[i][j] = temp;
+            adjMatrix[j][i] = adjMatrix[i][j];
+            if (temp > maior_DE){
+                maior_DE = temp;
+                i_maior = i;
+                j_maior = j;
+            } else if (temp < menor_DE){
+                menor_DE = temp;
+                i_menor = i;
+                j_menor = j;
             }
         }
     }
 
-    printf("%f\n", adjMatrix[0][149]);
+    for(int i = 0; i < 150; i++){
+        for(int j = i+1; j < 150; j++){
+            adjMatrix[i][j] = normaliza(adjMatrix[i][j], maior_DE, menor_DE);
+            adjMatrix[j][i] = adjMatrix[i][j];
+        }
+    }
+
+    printf("Maior: %f (%i,%i)\nMenor: %f (%i,%i)\n", maior_DE, i_maior, j_maior, menor_DE, i_menor, j_menor);
+    printf("Maior: %f (%i,%i)\nMenor: %f (%i,%i)\n", normaliza(maior_DE, maior_DE, menor_DE), i_maior, j_maior, normaliza(menor_DE, maior_DE, menor_DE), i_menor, j_menor);
 
     fclose(file);
 
@@ -61,5 +81,13 @@ float distancia_euclidiana(flower f1, flower f2){
             pow((f1.petWidth - f2.petWidth), 2));
         }
     }
+    return resultado;
+}
+
+float normaliza(float x, float maior, float menor){
+    float resultado = 0;
+
+    resultado = (x - menor)/(maior - menor);
+
     return resultado;
 }
