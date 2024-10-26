@@ -186,19 +186,20 @@ void printa_matriz(float matriz[150][150]){
     }
 }
 
+// Tem que lembrar de passar o i e j dos valores tbm
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor){
     FILE *close = fopen("Grafo.txt", "w");
     if(close){
-        fprintf(close,"%i,%f,%f,%f,%f",total,demaior,demenor,denmaior, denmenor);
-        fprintf(close,"\n");
+        fprintf(close,"%i\n", total);
+        fprintf(close,"Maior Distância Euclideana: %f\n", demaior);
+        fprintf(close,"Menor Distância Euclideana: %f\n", demenor);
+        fprintf(close,"Maior Distância Euclideana Normalizada: %f\n", denmaior);
+        fprintf(close,"Menor Distância Euclideana Normalizada: %f", denmenor);
         for(int i = 0; i < 150; i++){
-            for(int j = 0; j < 150; j++){
-                fprintf(close, "%i", matriz[i][j]);
-                if(j < 149){
-                    fprintf(close, ",");
-                }
+            for(int j = i+1; j < 150; j++){
+                if(matriz[i][j] != 0)
+                fprintf(close, "\n%i, %i", i, j);
             }
-            fprintf(close, "\n");
         }
     }
     fclose(close);
