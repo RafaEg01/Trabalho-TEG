@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 #define MAX_LINE_LENGTH 1024
 
 typedef struct flower{
@@ -11,23 +12,36 @@ typedef struct flower{
     float petWidth;
 } flower;
 
+// Acho q dá pra isso ser só uma flor normal, dps vou ver
+typedef struct Media{
+    double msepLength;
+    double msepWidth;
+    double mpetLength;
+    double mpetWidth;
+} Media;
+
 void distancia_euclideana(float matriz[150][150], flower flores[]);
 void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
 void distancia_normalizada(float *maior, float *menor, float matriz[150][150]);
 void printa_matriz(float matriz[150][150]);
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor);
-void leituramatriz(int matriz[150][150]);
+void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
+void centro(int *grupo, int tam, int indice, Media m[], flower flores[]);
 
 
 
 int main() {
     flower flores[150];
+    Media media[2] = {0};
     int matriz_adjacencia[150][150] = {0};
     float matrix[150][150] = {0};
     int i = 0;
     float demaior = 0, demenor = 0, denmaior = 0, denmenor = 0;
     int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0, total = 0;
     int opcao = -1;
+    int *grupoSetosa, *grupoNaoSetosa;
+    int tamSetosa = 0, tamNaoSetosa = 0, ponto = 0;
+    bool visitado[150] = {false};
 
     printf("Qual opcaoo voce deseja?");
     printf("\n(0) - Sair");
@@ -40,39 +54,43 @@ int main() {
         return 0;
         break;
     case 1:
-      //abertura e leitura arquivo
+
+        // Abertura e leitura arquivo
         FILE *file = fopen("IrisDataset.csv", "r");
         if (file == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
         }
-        //Pula a primeira linha do csv
-    fscanf(file, "%*[^\n]\n");
 
-    //Lê o resto das linhas
-    for(int i = 0; i < 150; i++){
-        total++;
-        fscanf(file, "%*[^,],%f,%f,%f,%f", &flores[i].petLength, &flores[i].petWidth, &flores[i].sepLength, &flores[i].sepWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
-        // printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
-    }
+        // Pula a primeira linha do csv
+        fscanf(file, "%*[^\n]\n");
 
-    distancia_euclideana(matrix, flores);
-    achamaioremenor(&demaior, &demenor, matrix, &imaior, &jmaior, &imenor, &jmenor);
-    //printa_matriz(matrix);
-    distancia_normalizada(&demaior, &demenor, matrix);
-    //printa_matriz(matrix);
-    for(int i = 0; i < 149; i++){
-        for(int j = i+1; j < 150; j++){
-            if(matrix[i][j] <= 0.2){
-                matriz_adjacencia[i][j] = 1; //tem relacao
-                matriz_adjacencia[j][i] = 1;
+        // Lê o resto das linhas
+        for(int i = 0; i < 150; i++){
+            total++;
+            fscanf(file, "%*[^,],%f,%f,%f,%f", &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
+        }
+
+        distancia_euclideana(matrix, flores);
+        achamaioremenor(&demaior, &demenor, matrix, &imaior, &jmaior, &imenor, &jmenor);
+        //printa_matriz(matrix);
+        distancia_normalizada(&demaior, &demenor, matrix);
+        //printa_matriz(matrix);
+
+        for(int i = 0; i < 149; i++){
+            for(int j = i+1; j < 150; j++){
+                if(matrix[i][j] <= 0.2){
+                    matriz_adjacencia[i][j] = 1; //tem relacao
+                    matriz_adjacencia[j][i] = 1;
+                }
             }
         }
-    } 
-        printf("Total de flores: %i", total);
+        
+        printf("Total de flores: %i\n", total);
         denmaior = matrix[imaior][jmaior];
         denmenor = matrix[imenor][jmenor];
-        printf("\nDEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
+        printf("DEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
         printf("DEmenor: %lf - (%i,%i)\n", demenor, imenor, jmenor);
         printf("DENmaior: %lf - (%i,%i)\n", denmaior, imaior, jmaior);
         printf("DENmenor: %lf - (%i,%i)", denmenor, imenor, jmenor);
@@ -82,40 +100,37 @@ int main() {
         
         break;
     case 2:
-    int i = 0;
-    int j = 0;
-        FILE *csvMatriz = fopen("Grafo.txt", "r");
-        if (csvMatriz == NULL) {
+
+        FILE *txtGrafo = fopen("Grafo.txt", "r");
+        if (txtGrafo == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
         }
-        char line[MAX_LINE_LENGTH];
-        fgets(line, sizeof(line), csvMatriz);
-    while (fgets(line, sizeof(line), csvMatriz)) {
-        i = 0;
-        char *token;
-        token = strtok(line, ",");
-        while (token != NULL) {
-            
-            matriz_adjacencia[j][i] = atoi(token);
-            token = strtok(NULL, ","); 
-            i++;
+
+        // Pula as primeiras 5 linhas do txt
+        for(int i = 0; i < 5; i++){
+            fscanf(txtGrafo, "%*[^\n]\n");
         }
-        j++;
-    }
-    printf("\n");
 
-    for(int i = 0; i < 150; i ++){
-        for( int j = 0; j < 150 ; j++){
-            printf("%i",matriz_adjacencia[i][j]);
+        int i = 0, j = 0, aux = 0;
+
+        do {
+            aux = fscanf(txtGrafo, "%d, %d", &i, &j);
+            matriz_adjacencia[i][j] = 1;
+            matriz_adjacencia[j][i] = 1;
         }
-        printf("\n");
-    }
+        while(aux != EOF); // EOF = End of File = -1
 
 
-    fclose(csvMatriz);
-    
-    return 0;
+        for(int i = 0; i < 150; i++){
+            for( int j = 0; j < 150 ; j++){
+                printf("%i",matriz_adjacencia[i][j]);
+            }
+            printf("\n");
+        }
+
+
+        fclose(txtGrafo);
         
         break;
     
@@ -123,11 +138,51 @@ int main() {
         printf("\nOpçao invalida\nTente novamente");
         break;
     }
+
+    grupoSetosa = malloc(sizeof(int));
+    grupoNaoSetosa = malloc(sizeof(int));
+
+    DFS(&grupoSetosa, &tamSetosa, visitado, ponto, matriz_adjacencia);
+     printf("\n===================");
+    printf("\nTamanho Setosas: %i\n", tamSetosa);
+
+    // Buscando o ultimo ponto com conexao para fazer com o proximo grupo
+    for (i = 0; i < 150; i++) {
+        if (!visitado[i]) {
+            ponto = i;
+            break;
+        }
+    }
+
+    DFS(&grupoNaoSetosa, &tamNaoSetosa, visitado, ponto, matriz_adjacencia);
+    printf("Tamanho nao Setosas: %d\n", tamNaoSetosa);
+
+    printf("\nGrupo 1 (setosa):\n");
+    for (i = 0; i < tamSetosa; i++)
+        printf("%d ", grupoSetosa[i]);
+    printf("\n");
+
+    printf("Grupo 2 (nao setosa):\n");
+    for (i = 0; i < tamNaoSetosa; i++)
+        printf("%d ", grupoNaoSetosa[i]);
+    printf("\n");
+
+
+    printf("===================\n");
+    printf("Buscando o centro de cada grupo:");
+    centro(grupoSetosa, tamSetosa, 1, media, flores);
+    centro(grupoNaoSetosa, tamNaoSetosa, 2, media, flores);
+
+    for(int i = 1; i < 3; i++){
+        printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth:%lf\nPetLength:%lf\nPetWidth:%lf\n", i, media[i].msepLength, media[i].msepWidth, media[i].mpetLength, media[i].mpetWidth);
+        printf("===================");
+    }
+
+    // Liberar a memória dos grupos
+    free(grupoSetosa);
+    free(grupoNaoSetosa);
+
         return 0;
-}
-
-void leituramatriz(int matriz[150][150]){
-
 }
 
 void distancia_euclideana(float matrix[150][150], flower flores[]){
@@ -186,20 +241,57 @@ void printa_matriz(float matriz[150][150]){
     }
 }
 
+// Tem que lembrar de passar o i e j dos valores tbm
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor){
     FILE *close = fopen("Grafo.txt", "w");
     if(close){
-        fprintf(close,"%i,%f,%f,%f,%f",total,demaior,demenor,denmaior, denmenor);
-        fprintf(close,"\n");
+        fprintf(close,"%i\n", total);
+        fprintf(close,"Maior Distância Euclideana: %f\n", demaior);
+        fprintf(close,"Menor Distância Euclideana: %f\n", demenor);
+        fprintf(close,"Maior Distância Euclideana Normalizada: %f\n", denmaior);
+        fprintf(close,"Menor Distância Euclideana Normalizada: %f", denmenor);
         for(int i = 0; i < 150; i++){
-            for(int j = 0; j < 150; j++){
-                fprintf(close, "%i", matriz[i][j]);
-                if(j < 149){
-                    fprintf(close, ",");
-                }
+            for(int j = i+1; j < 150; j++){
+                if(matriz[i][j] != 0)
+                fprintf(close, "\n%i, %i", i, j);
             }
-            fprintf(close, "\n");
         }
     }
     fclose(close);
+}
+
+void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]) {
+    visitado[ponto] = true; 
+    // Aumentar o tam do grupo e realocar memória
+    *tam += 1;
+    *grupo = realloc(*grupo, sizeof(int) * (*tam));
+    (*grupo)[(*tam) - 1] = ponto; // Adiciona o ponto ao grupo
+
+    //varrer o grafo e procurar conexões
+    for (int i = 0; i < 150; i++) {
+        if (matriz[ponto][i] == 1 && !visitado[i]) {
+            DFS(grupo, tam, visitado, i, matriz); //recursao
+        }
+    }  
+}
+
+void centro(int *grupo, int tam, int indice, Media m[], flower flores[]){
+    int vertice = 0;
+    m[indice].msepLength = 0;
+    m[indice].msepWidth = 0;
+    m[indice].mpetLength = 0;
+    m[indice].mpetWidth = 0;
+
+    for(int i = 0; i < tam; i++){
+        vertice = grupo[i];
+        m[indice].msepLength += flores[vertice].sepLength;
+        m[indice].msepWidth += flores[vertice].sepWidth;
+        m[indice].mpetLength += flores[vertice].petLength;
+        m[indice].mpetWidth += flores[vertice].petWidth;
+    }
+
+    m[indice].msepLength = m[indice].msepLength/tam;
+    m[indice].msepWidth = m[indice].msepWidth/tam;
+    m[indice].mpetLength = m[indice].mpetLength/tam;
+    m[indice].mpetWidth = m[indice].mpetWidth/tam;
 }
