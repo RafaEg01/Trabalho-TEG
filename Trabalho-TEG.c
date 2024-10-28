@@ -40,20 +40,21 @@ int main() {
         return 0;
         break;
     case 1:
-      //abertura e leitura arquivo
+
+    // Abertura e leitura arquivo
         FILE *file = fopen("IrisDataset.csv", "r");
         if (file == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
         }
-        //Pula a primeira linha do csv
+    // Pula a primeira linha do csv
     fscanf(file, "%*[^\n]\n");
 
-    //Lê o resto das linhas
+    // Lê o resto das linhas
     for(int i = 0; i < 150; i++){
         total++;
         fscanf(file, "%*[^,],%f,%f,%f,%f", &flores[i].petLength, &flores[i].petWidth, &flores[i].sepLength, &flores[i].sepWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
-        // printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
+        //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
     }
 
     distancia_euclideana(matrix, flores);
@@ -61,6 +62,7 @@ int main() {
     //printa_matriz(matrix);
     distancia_normalizada(&demaior, &demenor, matrix);
     //printa_matriz(matrix);
+
     for(int i = 0; i < 149; i++){
         for(int j = i+1; j < 150; j++){
             if(matrix[i][j] <= 0.2){
@@ -82,30 +84,29 @@ int main() {
         
         break;
     case 2:
-    int i = 0;
-    int j = 0;
-        FILE *csvMatriz = fopen("Grafo.txt", "r");
-        if (csvMatriz == NULL) {
+
+        FILE *txtGrafo = fopen("Grafo.txt", "r");
+        if (txtGrafo == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
         }
-        char line[MAX_LINE_LENGTH];
-        fgets(line, sizeof(line), csvMatriz);
-    while (fgets(line, sizeof(line), csvMatriz)) {
-        i = 0;
-        char *token;
-        token = strtok(line, ",");
-        while (token != NULL) {
-            
-            matriz_adjacencia[j][i] = atoi(token);
-            token = strtok(NULL, ","); 
-            i++;
-        }
-        j++;
-    }
-    printf("\n");
 
-    for(int i = 0; i < 150; i ++){
+    // Pula as primeiras 5 linhas do txt
+    for(int i = 0; i < 5; i++){
+        fscanf(txtGrafo, "%*[^\n]\n");
+    }
+
+    int i = 0, j = 0, aux = 0;
+
+    do {
+        aux = fscanf(txtGrafo, "%d, %d", &i, &j);
+        matriz_adjacencia[i][j] = 1;
+        matriz_adjacencia[j][i] = 1;
+    }
+    while(aux != EOF); // EOF = End of File = -1
+
+
+    for(int i = 0; i < 150; i++){
         for( int j = 0; j < 150 ; j++){
             printf("%i",matriz_adjacencia[i][j]);
         }
@@ -113,7 +114,7 @@ int main() {
     }
 
 
-    fclose(csvMatriz);
+    fclose(txtGrafo);
     
     return 0;
         
