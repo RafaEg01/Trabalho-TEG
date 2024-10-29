@@ -12,27 +12,18 @@ typedef struct flower{
     float petWidth;
 } flower;
 
-// Acho q dá pra isso ser só uma flor normal, dps vou ver
-typedef struct Media{
-    double msepLength;
-    double msepWidth;
-    double mpetLength;
-    double mpetWidth;
-} Media;
-
 void distancia_euclideana(float matriz[150][150], flower flores[]);
 void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
 void distancia_normalizada(float *maior, float *menor, float matriz[150][150]);
 void printa_matriz(float matriz[150][150]);
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor);
 void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
-void centro(int *grupo, int tam, int indice, Media m[], flower flores[]);
+flower centro(int* grupo, int tam, flower flores[]);
 
 
 
 int main() {
     flower flores[150];
-    Media media[2] = {0};
     int matriz_adjacencia[150][150] = {0};
     float matrix[150][150] = {0};
     int i = 0;
@@ -140,7 +131,7 @@ int main() {
         break;
     }
 
-    // Aloca o primeiro grupo (Pois sempre existirá pelo menos 1 grupo)
+    // Aloca o primeiro grupo
     int* tamanhos_dos_grupos = malloc(sizeof(int));
     tamanhos_dos_grupos[0] = 0;
     int** grupos = malloc(sizeof(int*));
@@ -163,7 +154,7 @@ int main() {
             }
         }
 
-    } // O while deve para quando todo o vetor de visitados for true
+    } // O while deve parar quando todo o vetor de visitados for true
     while(visitado[ponto] != true);
 
     printf("Numero de grupos: %i\n", num_grupos + 1);
@@ -176,21 +167,22 @@ int main() {
         printf("\n");
     }
 
-    // printf("===================\n");
-    // printf("Buscando o centro de cada grupo:");
-    // centro(grupos[0], tamSetosa, 1, media, flores);
-    // centro(grupoNaoSetosa, tamNaoSetosa, 2, media, flores);
+    flower* medias = malloc(sizeof(flower) * num_grupos);
 
-    // for(int i = 1; i < 3; i++){
-    //     printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n", i, media[i].msepLength, media[i].msepWidth, media[i].mpetLength, media[i].mpetWidth);
-    //     printf("===================");
-    // }
+    for(int i = 0; i <= num_grupos; i++){
+        medias[i] = centro(grupos[i], tamanhos_dos_grupos[i], flores);
+        printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n"
+        , i, medias[i].sepLength, medias[i].sepWidth, medias[i].petLength, medias[i].petWidth);
+        printf("===================");
+    }
 
     // Liberar a memória dos grupos
     for(int i = 0; i < num_grupos; i++){
         free(grupos[i]);
     }
+    free(grupos);
     free(tamanhos_dos_grupos);
+    free(medias);
 
     return 0;
 }
@@ -287,23 +279,26 @@ void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][1
     }  
 }
 
-void centro(int *grupo, int tam, int indice, Media m[], flower flores[]){
-    int vertice = 0;
-    m[indice].msepLength = 0;
-    m[indice].msepWidth = 0;
-    m[indice].mpetLength = 0;
-    m[indice].mpetWidth = 0;
+flower centro(int* grupo, int tam, flower flores[]){
+    // int vertice = 0;
+    flower media;
+    media.sepLength = 0;
+    media.sepWidth = 0;
+    media.petLength = 0;
+    media.petWidth = 0;
 
     for(int i = 0; i < tam; i++){
-        vertice = grupo[i];
-        m[indice].msepLength += flores[vertice].sepLength;
-        m[indice].msepWidth += flores[vertice].sepWidth;
-        m[indice].mpetLength += flores[vertice].petLength;
-        m[indice].mpetWidth += flores[vertice].petWidth;
+        media.sepLength += flores[grupo[i]].sepLength;
+        media.sepWidth += flores[grupo[i]].sepWidth;
+        media.petLength += flores[grupo[i]].petLength;
+        media.petWidth += flores[grupo[i]].petWidth;
     }
 
-    m[indice].msepLength = m[indice].msepLength/tam;
-    m[indice].msepWidth = m[indice].msepWidth/tam;
-    m[indice].mpetLength = m[indice].mpetLength/tam;
-    m[indice].mpetWidth = m[indice].mpetWidth/tam;
+    media.sepLength = media.sepLength/tam;
+    media.sepWidth = media.sepWidth/tam;
+    media.petLength = media.petLength/tam;
+    media.petWidth = media.petWidth/tam;
+
+
+    return media;
 }
