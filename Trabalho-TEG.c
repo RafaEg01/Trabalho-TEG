@@ -12,7 +12,8 @@ typedef struct flower{
     float petWidth;
 } flower;
 
-void distancia_euclideana(float matriz[150][150], flower flores[]);
+float distancia_euclideana(flower f1, flower f2);
+void preencher_distancia_euclideana(float matriz[150][150], flower flores[]);
 void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
 void distancia_normalizada(float *maior, float *menor, float matriz[150][150]);
 void printa_matriz(float matriz[150][150]);
@@ -62,7 +63,7 @@ int main() {
             //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
         }
 
-        distancia_euclideana(matrix, flores);
+        preencher_distancia_euclideana(matrix, flores);
         achamaioremenor(&demaior, &demenor, matrix, &imaior, &jmaior, &imenor, &jmenor);
         //printa_matriz(matrix);
         distancia_normalizada(&demaior, &demenor, matrix);
@@ -70,7 +71,7 @@ int main() {
 
         for(int i = 0; i < 149; i++){
             for(int j = i+1; j < 150; j++){
-                if(matrix[i][j] <= 0.05){
+                if(matrix[i][j] <= 0.06){
                     matriz_adjacencia[i][j] = 1; //tem relacao
                     matriz_adjacencia[j][i] = 1;
                 }
@@ -157,6 +158,24 @@ int main() {
     } // O while deve parar quando todo o vetor de visitados for true
     while(visitado[ponto] != true);
 
+    // Organiza o vetor de tamanhos e o vetor de grupos, do maior para o menor (Selection sort)
+    for(int i = 0; i < num_grupos; i++){
+        int ind_maior = i;
+
+        for(int j = i + 1; j < num_grupos + 1; j++){
+            if(tamanhos_dos_grupos[j] > tamanhos_dos_grupos[ind_maior]){
+                ind_maior = j;
+            }
+        }
+
+        int temp = tamanhos_dos_grupos[i];
+        int* ptemp = grupos[i]; // ponteiro temporario
+        tamanhos_dos_grupos[i] = tamanhos_dos_grupos[ind_maior];
+        grupos[i] = grupos[ind_maior];
+        tamanhos_dos_grupos[ind_maior] = temp;
+        grupos[ind_maior] = ptemp;
+    }
+
     printf("Numero de grupos: %i\n", num_grupos + 1);
 
     for(int i = 0; i <= num_grupos; i++){
@@ -167,15 +186,48 @@ int main() {
         printf("\n");
     }
 
-    flower* medias = malloc(sizeof(flower) * num_grupos);
+    // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas
+    flower mediaNaoSetosa = centro(grupos[0], tamanhos_dos_grupos[0], flores);
+    flower mediaSetosa = centro(grupos[1], tamanhos_dos_grupos[1], flores);
 
-    // Essa parte vai ficar meio obsoleta, pq vai terminar sendo só pra 2 grupos
-    for(int i = 0; i <= num_grupos; i++){
-        medias[i] = centro(grupos[i], tamanhos_dos_grupos[i], flores);
-        printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n"
-        , i, medias[i].sepLength, medias[i].sepWidth, medias[i].petLength, medias[i].petWidth);
-        printf("===================");
+    // Junta os outros grupos aos dois primeiros
+    for(int i = num_grupos; i > 1; i--){
+        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+            // Compara a DE entre os vértices de cada grupo pequeno separado com os centros dos dois grupos principais
+            if(distancia_euclideana(flores[grupos[i][j]], mediaNaoSetosa) <= distancia_euclideana(flores[grupos[i][j]], mediaSetosa)){
+                tamanhos_dos_grupos[0]++;
+                grupos[0] = realloc(grupos[0], sizeof(int)*tamanhos_dos_grupos[0]);
+                grupos[0][tamanhos_dos_grupos[0] - 1] = grupos[i][j];
+            } else {
+                tamanhos_dos_grupos[1]++;
+                grupos[1] = realloc(grupos[1], sizeof(int)*tamanhos_dos_grupos[1]);
+                grupos[1][tamanhos_dos_grupos[1] - 1] = grupos[i][j];
+            }
+        }
+        num_grupos--;
+        free(grupos[i]);
     }
+
+    printf("Numero de grupos: %i\n", num_grupos + 1);
+
+    for(int i = 0; i <= num_grupos; i++){
+        printf("Grupo %i:\n", i);
+        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+            printf("%i ", grupos[i][j]);
+        }
+        printf("\n");
+    }
+
+    // Essa parte está obsoleta, mas serve pra mostrar os centros de todos os grupos
+    
+    // flower* medias = malloc(sizeof(flower) * num_grupos);
+    // for(int i = 0; i <= num_grupos; i++){
+    //     medias[i] = centro(grupos[i], tamanhos_dos_grupos[i], flores);
+    //     printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n"
+    //     , i, medias[i].sepLength, medias[i].sepWidth, medias[i].petLength, medias[i].petWidth);
+    //     printf("===================");
+    // }
+    // free(medias);
 
     // Liberar a memória dos grupos
     for(int i = 0; i < num_grupos; i++){
@@ -183,12 +235,18 @@ int main() {
     }
     free(grupos);
     free(tamanhos_dos_grupos);
-    free(medias);
 
     return 0;
 }
 
-void distancia_euclideana(float matrix[150][150], flower flores[]){
+float distancia_euclideana(flower f1, flower f2){
+    return sqrt(pow((f1.sepLength - f2.sepLength), 2) +
+                pow((f1.sepWidth - f2.sepWidth), 2) +
+                pow((f1.petLength - f2.petLength), 2) +
+                pow((f1.petWidth - f2.petWidth), 2));
+}
+
+void preencher_distancia_euclideana(float matrix[150][150], flower flores[]){
     int i = 0, j = 0;
     for(i = 0; i < 149; i++){
         for(j = i+1; j < 150; j++){
