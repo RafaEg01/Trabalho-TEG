@@ -37,10 +37,8 @@ int main() {
     float matrix[150][150] = {0};
     int i = 0;
     float demaior = 0, demenor = 0, denmaior = 0, denmenor = 0;
-    int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0, total = 0;
-    int opcao = -1;
-    int *grupoSetosa, *grupoNaoSetosa;
-    int tamSetosa = 0, tamNaoSetosa = 0, ponto = 0;
+    int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0, total = 0, opcao = -1;
+    int ponto = 0;
     bool visitado[150] = {false};
 
     printf("Qual opcaoo voce deseja?");
@@ -54,6 +52,7 @@ int main() {
         return 0;
         break;
     case 1:
+    // Leitura do dataset e montagem do grafo
 
         // Abertura e leitura arquivo
         FILE *file = fopen("IrisDataset.csv", "r");
@@ -86,28 +85,30 @@ int main() {
                 }
             }
         }
-        
+
         printf("Total de flores: %i\n", total);
         denmaior = matrix[imaior][jmaior];
         denmenor = matrix[imenor][jmenor];
         printf("DEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
         printf("DEmenor: %lf - (%i,%i)\n", demenor, imenor, jmenor);
         printf("DENmaior: %lf - (%i,%i)\n", denmaior, imaior, jmaior);
-        printf("DENmenor: %lf - (%i,%i)", denmenor, imenor, jmenor);
+        printf("DENmenor: %lf - (%i,%i)\n", denmenor, imenor, jmenor);
 
         fclose(file);
+
         close_file(matriz_adjacencia,total, demaior,demenor,denmaior, denmenor);
         
         break;
     case 2:
+    // Releitura do grafo
 
-        FILE *txtGrafo = fopen("Grafo.txt", "r");
+        FILE *txtGrafo = fopen("grafo.txt", "r");
         if (txtGrafo == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
         }
 
-        // Pula as primeiras 5 linhas do txt
+        // Pula as primeiras 5 linhas do txt (Cabeçalho)
         for(int i = 0; i < 5; i++){
             fscanf(txtGrafo, "%*[^\n]\n");
         }
@@ -139,50 +140,59 @@ int main() {
         break;
     }
 
-    grupoSetosa = malloc(sizeof(int));
-    grupoNaoSetosa = malloc(sizeof(int));
+    // Aloca o primeiro grupo (Pois sempre existirá pelo menos 1 grupo)
+    int* tamanhos_dos_grupos = malloc(sizeof(int));
+    tamanhos_dos_grupos[0] = 0;
+    int** grupos = malloc(sizeof(int*));
+    *(grupos) = malloc(sizeof(int));
 
-    DFS(&grupoSetosa, &tamSetosa, visitado, ponto, matriz_adjacencia);
-     printf("\n===================");
-    printf("\nTamanho Setosas: %i\n", tamSetosa);
+    int num_grupos = 0;
 
-    // Buscando o ultimo ponto com conexao para fazer com o proximo grupo
-    for (i = 0; i < 150; i++) {
-        if (!visitado[i]) {
-            ponto = i;
-            break;
+    do{
+        DFS((grupos + num_grupos), (tamanhos_dos_grupos + num_grupos), visitado, ponto, matriz_adjacencia); // Preenche o grupo
+
+        for (i = 0; i < 150; i++) { // Vê se tem algum vértice não visitado sobrando
+            if (!visitado[i]) { // Se sim, cria mais um grupo
+                ponto = i;
+                num_grupos++;
+                grupos = realloc(grupos, sizeof(int*) * (num_grupos + 1));// Aloca um ponteiro de grupo
+                *(grupos + num_grupos) = malloc(sizeof(int)); // Aloca um novo grupo
+                tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * num_grupos);
+                *(tamanhos_dos_grupos + num_grupos) = 0;
+                break;
+            }
         }
+
+    } // O while deve para quando todo o vetor de visitados for true
+    while(visitado[ponto] != true);
+
+    printf("Numero de grupos: %i\n", num_grupos + 1);
+
+    for(int i = 0; i <= num_grupos; i++){
+        printf("Grupo %i:\n", i);
+        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+            printf("%i ", grupos[i][j]);
+        }
+        printf("\n");
     }
 
-    DFS(&grupoNaoSetosa, &tamNaoSetosa, visitado, ponto, matriz_adjacencia);
-    printf("Tamanho nao Setosas: %d\n", tamNaoSetosa);
+    // printf("===================\n");
+    // printf("Buscando o centro de cada grupo:");
+    // centro(grupos[0], tamSetosa, 1, media, flores);
+    // centro(grupoNaoSetosa, tamNaoSetosa, 2, media, flores);
 
-    printf("\nGrupo 1 (setosa):\n");
-    for (i = 0; i < tamSetosa; i++)
-        printf("%d ", grupoSetosa[i]);
-    printf("\n");
-
-    printf("Grupo 2 (nao setosa):\n");
-    for (i = 0; i < tamNaoSetosa; i++)
-        printf("%d ", grupoNaoSetosa[i]);
-    printf("\n");
-
-
-    printf("===================\n");
-    printf("Buscando o centro de cada grupo:");
-    centro(grupoSetosa, tamSetosa, 1, media, flores);
-    centro(grupoNaoSetosa, tamNaoSetosa, 2, media, flores);
-
-    for(int i = 1; i < 3; i++){
-        printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth:%lf\nPetLength:%lf\nPetWidth:%lf\n", i, media[i].msepLength, media[i].msepWidth, media[i].mpetLength, media[i].mpetWidth);
-        printf("===================");
-    }
+    // for(int i = 1; i < 3; i++){
+    //     printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n", i, media[i].msepLength, media[i].msepWidth, media[i].mpetLength, media[i].mpetWidth);
+    //     printf("===================");
+    // }
 
     // Liberar a memória dos grupos
-    free(grupoSetosa);
-    free(grupoNaoSetosa);
+    for(int i = 0; i < num_grupos; i++){
+        free(grupos[i]);
+    }
+    free(tamanhos_dos_grupos);
 
-        return 0;
+    return 0;
 }
 
 void distancia_euclideana(float matrix[150][150], flower flores[]){
@@ -243,7 +253,8 @@ void printa_matriz(float matriz[150][150]){
 
 // Tem que lembrar de passar o i e j dos valores tbm
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor){
-    FILE *close = fopen("Grafo.txt", "w");
+    FILE *close = fopen("grafo.txt", "w");
+
     if(close){
         fprintf(close,"%i\n", total);
         fprintf(close,"Maior Distância Euclideana: %f\n", demaior);
@@ -257,6 +268,7 @@ void close_file(int matriz[150][150], int total, float demaior, float demenor, f
             }
         }
     }
+
     fclose(close);
 }
 
@@ -267,7 +279,7 @@ void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][1
     *grupo = realloc(*grupo, sizeof(int) * (*tam));
     (*grupo)[(*tam) - 1] = ponto; // Adiciona o ponto ao grupo
 
-    //varrer o grafo e procurar conexões
+    // Varrer o grafo e procurar conexões
     for (int i = 0; i < 150; i++) {
         if (matriz[ponto][i] == 1 && !visitado[i]) {
             DFS(grupo, tam, visitado, i, matriz); //recursao
