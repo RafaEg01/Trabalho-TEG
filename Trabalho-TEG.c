@@ -70,7 +70,7 @@ int main() {
 
         for(int i = 0; i < 149; i++){
             for(int j = i+1; j < 150; j++){
-                if(matrix[i][j] <= 0.2){
+                if(matrix[i][j] <= 0.05){
                     matriz_adjacencia[i][j] = 1; //tem relacao
                     matriz_adjacencia[j][i] = 1;
                 }
@@ -148,7 +148,7 @@ int main() {
                 num_grupos++;
                 grupos = realloc(grupos, sizeof(int*) * (num_grupos + 1));// Aloca um ponteiro de grupo
                 *(grupos + num_grupos) = malloc(sizeof(int)); // Aloca um novo grupo
-                tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * num_grupos);
+                tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * (num_grupos + 1));
                 *(tamanhos_dos_grupos + num_grupos) = 0;
                 break;
             }
@@ -169,6 +169,7 @@ int main() {
 
     flower* medias = malloc(sizeof(flower) * num_grupos);
 
+    // Essa parte vai ficar meio obsoleta, pq vai terminar sendo só pra 2 grupos
     for(int i = 0; i <= num_grupos; i++){
         medias[i] = centro(grupos[i], tamanhos_dos_grupos[i], flores);
         printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n"
@@ -279,8 +280,8 @@ void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][1
     }  
 }
 
+// Só funciona se o vetor de flores estiver preenchido, ou seja, no caso 1
 flower centro(int* grupo, int tam, flower flores[]){
-    // int vertice = 0;
     flower media;
     media.sepLength = 0;
     media.sepWidth = 0;
