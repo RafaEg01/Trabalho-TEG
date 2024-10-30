@@ -42,7 +42,7 @@ int main() {
     printf("Qual opcaoo voce deseja?");
     printf("\n(0) - Sair");
     printf("\n(1) - Ler dados do Dataset");
-    printf("\n(2) - Ler matriz de adjacencia\n");
+    printf("\n(2) - Ler matriz de adjacencia");
     printf("\n(3) - Criar relatorio\n");
     scanf("%i",&opcao);
     
@@ -135,14 +135,14 @@ int main() {
         break;
     
     case 3:
-    float limiteSuperior,limiteInferior,incrementar;
+        float limiteSuperior,limiteInferior,incrementar;
 
-    dados dados;            // Tirar daqui depois e adiconar uma opção nova de gerar o relatorio
-    dados.tamanhoGrupos = NULL;
-    dados.limiares = NULL;
-    dados.tamanho = 0;
+        dados dados;            // Tirar daqui depois e adiconar uma opção nova de gerar o relatorio
+        dados.tamanhoGrupos = NULL;
+        dados.limiares = NULL;
+        dados.tamanho = 0;
 
-    FILE *relatorio = fopen("IrisDataset.csv", "r");
+        FILE *relatorio = fopen("IrisDataset.csv", "r");
         if (relatorio == NULL) {
             printf("Erro ao abrir o arquivo.\n");
             return -1;
@@ -158,18 +158,17 @@ int main() {
             //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
         }
 
+        printf("\nQual valor para o limite Superior\n");
+        scanf("%f",&limiteSuperior);
+        printf("Qual valor para o limite Inferior\n");
+        scanf("%f",&limiteInferior);
+        printf("Qual valor para o Incremento\n");
+        scanf("%f",&incrementar);
 
-    printf("\nQual valor para o limite Superior\n");
-    scanf("%f",&limiteSuperior);
-    printf("\nQual valor para o limite Inferior\n");
-    scanf("%f",&limiteInferior);
-    printf("\nQual valor para o Incremento\n");
-    scanf("%f",&incrementar);
-
-    infoRelatorio(flores,&dados, limiteSuperior,limiteInferior,incrementar);
-    gerarRelatorio(&dados);
-;        return 0;
-    break;
+        infoRelatorio(flores,&dados, limiteSuperior,limiteInferior,incrementar);
+        gerarRelatorio(&dados);
+        return 0;
+        break;
     
     default:
         printf("\nOpçao invalida\nTente novamente");
@@ -407,7 +406,7 @@ flower centro(int* grupo, int tam, flower flores[]){
 }
 
 void infoRelatorio(flower flores[], dados* dados, float limiteSuperior, float limiteInferior, float incrementar){ // Ficou meio merda essas variaveis aqui, pensando em uma solução ainda
-        float limiar = limiteInferior;
+    float limiar = limiteInferior;
     
     
     while(limiar <= limiteSuperior){
@@ -502,7 +501,7 @@ void gerarRelatorio(dados* dados){
     if(relatorio){
         fprintf(relatorio,"Limiar,Grupos\n");
         for(int i = 0; i < dados->tamanho; i++){
-           fprintf(relatorio,"%i,.%.2f\n",dados->tamanhoGrupos[i],dados->limiares[i]);
+           fprintf(relatorio,"%.2f, %i\n",dados->limiares[i], dados->tamanhoGrupos[i]);
         }
     }
 
