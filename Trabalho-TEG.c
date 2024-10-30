@@ -12,6 +12,12 @@ typedef struct flower{
     float petWidth;
 } flower;
 
+ typedef struct Dados{ // Parametros para realizar o relatorio
+        float *limiares;
+        int *tamanhoGrupos;
+        int tamanho;
+    }dados;
+
 float distancia_euclideana(flower f1, flower f2);
 void preencher_distancia_euclideana(float matriz[150][150], flower flores[]);
 void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
@@ -20,8 +26,8 @@ void printa_matriz(float matriz[150][150]);
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor);
 void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
 flower centro(int* grupo, int tam, flower flores[]);
-
-
+void infoRelatorio(flower flores[150], dados* dados, float limiteSuperior, float limiteInferior, float incrementar);
+void gerarRelatorio(dados* dados);
 
 int main() {
     flower flores[150];
@@ -37,6 +43,7 @@ int main() {
     printf("\n(0) - Sair");
     printf("\n(1) - Ler dados do Dataset");
     printf("\n(2) - Ler matriz de adjacencia\n");
+    printf("\n(3) - Criar relatorio\n");
     scanf("%i",&opcao);
     
     switch (opcao){
@@ -126,6 +133,43 @@ int main() {
         fclose(txtGrafo);
         
         break;
+    
+    case 3:
+    float limiteSuperior,limiteInferior,incrementar;
+
+    dados dados;            // Tirar daqui depois e adiconar uma opção nova de gerar o relatorio
+    dados.tamanhoGrupos = NULL;
+    dados.limiares = NULL;
+    dados.tamanho = 0;
+
+    FILE *relatorio = fopen("IrisDataset.csv", "r");
+        if (relatorio == NULL) {
+            printf("Erro ao abrir o arquivo.\n");
+            return -1;
+        }
+
+        // Pula a primeira linha do csv
+        fscanf(relatorio, "%*[^\n]\n");
+
+        // Lê o resto das linhas
+        for(int i = 0; i < 150; i++){
+            total++;
+            fscanf(relatorio, "%*[^,],%f,%f,%f,%f", &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
+        }
+
+
+    printf("\nQual valor para o limite Superior\n");
+    scanf("%f",&limiteSuperior);
+    printf("\nQual valor para o limite Inferior\n");
+    scanf("%f",&limiteInferior);
+    printf("\nQual valor para o Incremento\n");
+    scanf("%f",&incrementar);
+
+    infoRelatorio(flores,&dados, limiteSuperior,limiteInferior,incrementar);
+    gerarRelatorio(&dados);
+;        return 0;
+    break;
     
     default:
         printf("\nOpçao invalida\nTente novamente");
@@ -360,4 +404,108 @@ flower centro(int* grupo, int tam, flower flores[]){
 
 
     return media;
+}
+
+void infoRelatorio(flower flores[], dados* dados, float limiteSuperior, float limiteInferior, float incrementar){ // Ficou meio merda essas variaveis aqui, pensando em uma solução ainda
+        float limiar = limiteInferior;
+    
+    
+    while(limiar <= limiteSuperior){
+        int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0;
+        float demaior = 0, demenor = 0, denmaior = 0, denmenor = 0;
+        int ponto = 0;
+        bool visitado[150] = {false};
+        int matriz_adjacencia[150][150] = {0};
+        float matrix[150][150] = {0};
+     
+        
+        
+        dados->tamanho++;
+
+        preencher_distancia_euclideana(matrix, flores);
+        achamaioremenor(&demaior, &demenor, matrix, &imaior, &jmaior, &imenor, &jmenor);
+        distancia_normalizada(&demaior, &demenor, matrix);
+        
+        for(int i = 0; i < 149; i++){
+                    for(int j = i+1; j < 150; j++){
+                        if(matrix[i][j] <= limiar){
+                            matriz_adjacencia[i][j] = 1; //tem relacao
+                            matriz_adjacencia[j][i] = 1;
+                        }
+                    }
+                }
+     
+
+        
+        int* tamanhos_dos_grupos = malloc(sizeof(int));
+        tamanhos_dos_grupos[0] = 0;
+        int** grupos = malloc(sizeof(int*));
+        *(grupos) = malloc(sizeof(int));
+
+        int num_grupos = 0;
+
+        do{
+            DFS((grupos + num_grupos), (tamanhos_dos_grupos + num_grupos), visitado, ponto, matriz_adjacencia); // Preenche o grupo
+
+            for (int i = 0; i < 150; i++) { // Vê se tem algum vértice não visitado sobrando
+                if (!visitado[i]) { // Se sim, cria mais um grupo
+                    ponto = i;
+                    num_grupos++;
+                    grupos = realloc(grupos, sizeof(int*) * (num_grupos + 1));// Aloca um ponteiro de grupo
+                    *(grupos + num_grupos) = malloc(sizeof(int)); // Aloca um novo grupo
+                    tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * (num_grupos + 1));
+                    *(tamanhos_dos_grupos + num_grupos) = 0;
+                    break;
+                }
+            }
+
+        } // O while deve parar quando todo o vetor de visitados for true
+        while(visitado[ponto] != true);
+        // printf("\nTamanho do dados = %i", dados->tamanho);a
+        // printf("\nTamanho do limiar = %f", limiar);
+        // printf("\nNumero de grupos: %i\n", num_grupos + 1);
+
+        float *limiartemp = (float*)realloc(dados->limiares, dados->tamanho * sizeof(float)); // Alocar mais espaço a cada iteração +1
+        if (limiartemp == NULL) { // Testar caso a alocação tenha problemas
+            printf("Falha na alocação de memória\n");
+            free(dados->limiares);
+            exit(1);
+        }
+        dados->limiares = limiartemp;
+        dados->limiares[dados->tamanho-1] = limiar; // Colocar valor na ultima posição do Vetor
+
+
+        int *tamanhoGrupostemp = (int*)realloc(dados->tamanhoGrupos, dados->tamanho * sizeof(int)); // Alocar mais espaço a cada iteração +1
+        if (tamanhoGrupostemp == NULL) {      // Testar caso a alocação tenha problemas
+            printf("Falha na alocação de memória\n");
+            free(dados->tamanhoGrupos);
+            exit(1);
+        }
+        dados->tamanhoGrupos = tamanhoGrupostemp;
+        dados->tamanhoGrupos[dados->tamanho-1] = num_grupos+1; // Colocar valor na ultima posição do Vetor
+
+        
+        for(int i = 0; i < num_grupos; i++){ // Liberar Memoria
+            free(grupos[i]);
+        }
+        free(grupos);
+        free(tamanhos_dos_grupos);
+
+        limiar += incrementar;
+        }
+
+    }
+
+void gerarRelatorio(dados* dados){
+    FILE *relatorio = fopen("Relatorio.csv", "w");
+
+    if(relatorio){
+        fprintf(relatorio,"Limiar,Grupos\n");
+        for(int i = 0; i < dados->tamanho; i++){
+           fprintf(relatorio,"%i,.%.2f\n",dados->tamanhoGrupos[i],dados->limiares[i]);
+        }
+    }
+
+    fclose(relatorio);
+
 }
