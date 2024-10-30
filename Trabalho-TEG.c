@@ -10,6 +10,7 @@ typedef struct flower{
     float sepWidth;
     float petLength;
     float petWidth;
+    int tipo; // 0 = Não Setosa; 1 = Setosa; Se quiser dividir as não setosas é fácil
 } flower;
 
  typedef struct Dados{ // Parametros para realizar o relatorio
@@ -38,6 +39,7 @@ int main() {
     int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0, total = 0, opcao = -1;
     int ponto = 0;
     bool visitado[150] = {false};
+    char tipo_flor[11]; // 10 bytes pra maior palavra "versicolor" e 1 pro "\0"
 
     printf("Qual opcaoo voce deseja?");
     printf("\n(0) - Sair");
@@ -66,7 +68,13 @@ int main() {
         // Lê o resto das linhas
         for(int i = 0; i < 150; i++){
             total++;
-            fscanf(file, "%*[^,],%f,%f,%f,%f", &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            fscanf(file, "%[^,],%f,%f,%f,%f", tipo_flor, &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            if(!strcmp(tipo_flor, "\nSetosa")){
+                flores[i].tipo = 1;
+                printf("%i:%s\n", i, tipo_flor);
+            } else {
+                flores[i].tipo = 0;
+            }
             //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
         }
 
@@ -78,7 +86,7 @@ int main() {
 
         for(int i = 0; i < 149; i++){
             for(int j = i+1; j < 150; j++){
-                if(matrix[i][j] <= 0.06){
+                if(matrix[i][j] <= 0.2){
                     matriz_adjacencia[i][j] = 1; //tem relacao
                     matriz_adjacencia[j][i] = 1;
                 }
@@ -219,17 +227,7 @@ int main() {
         grupos[ind_maior] = ptemp;
     }
 
-    printf("Numero de grupos: %i\n", num_grupos + 1);
-
-    for(int i = 0; i <= num_grupos; i++){
-        printf("Grupo %i:\n", i);
-        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
-            printf("%i ", grupos[i][j]);
-        }
-        printf("\n");
-    }
-
-    // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas
+    // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas (Melhor trocar isso dps)
     flower mediaNaoSetosa = centro(grupos[0], tamanhos_dos_grupos[0], flores);
     flower mediaSetosa = centro(grupos[1], tamanhos_dos_grupos[1], flores);
 
