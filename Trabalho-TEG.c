@@ -27,6 +27,7 @@ void printa_matriz(float matriz[150][150]);
 void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor);
 void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
 flower centro(int* grupo, int tam, flower flores[]);
+int contaSetosas(int* grupo, int tamanho, flower flores[]);
 void infoRelatorio(flower flores[150], dados* dados, float limiteSuperior, float limiteInferior, float incrementar);
 void gerarRelatorio(dados* dados);
 
@@ -38,6 +39,7 @@ int main() {
     float demaior = 0, demenor = 0, denmaior = 0, denmenor = 0;
     int imaior = 0, jmaior = 0, imenor = 0, jmenor = 0, total = 0, opcao = -1;
     int ponto = 0;
+    int TP = 0, FP = 0, TN = 0, FN = 0; 
     bool visitado[150] = {false};
     char tipo_flor[11]; // 10 bytes pra maior palavra "versicolor" e 1 pro "\0"
 
@@ -68,14 +70,13 @@ int main() {
         // Lê o resto das linhas
         for(int i = 0; i < 150; i++){
             total++;
-            fscanf(file, "%[^,],%f,%f,%f,%f", tipo_flor, &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
-            if(!strcmp(tipo_flor, "\nSetosa")){
+            fscanf(file, "%[^,],%f,%f,%f,%f\n", tipo_flor, &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            if(!strcmp(tipo_flor, "Setosa")){
                 flores[i].tipo = 1;
-                printf("%i:%s\n", i, tipo_flor);
             } else {
                 flores[i].tipo = 0;
             }
-            //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
+            // printf("Flower %i: %f\t%f\t%f\t%f\t%i\n", i+1, flores[i].sepLength, flores[i].sepWidth, flores[i].petLength, flores[i].petWidth, flores[i].tipo);
         }
 
         preencher_distancia_euclideana(matrix, flores);
@@ -86,7 +87,7 @@ int main() {
 
         for(int i = 0; i < 149; i++){
             for(int j = i+1; j < 150; j++){
-                if(matrix[i][j] <= 0.2){
+                if(matrix[i][j] <= 0.01){
                     matriz_adjacencia[i][j] = 1; //tem relacao
                     matriz_adjacencia[j][i] = 1;
                 }
@@ -140,6 +141,7 @@ int main() {
 
         fclose(txtGrafo);
         
+        return 0; // qnd arrumar tudo tem q tirar isso aq
         break;
     
     case 3:
@@ -162,7 +164,7 @@ int main() {
         // Lê o resto das linhas
         for(int i = 0; i < 150; i++){
             total++;
-            fscanf(relatorio, "%*[^,],%f,%f,%f,%f", &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
+            fscanf(relatorio, "%*[^,],%f,%f,%f,%f\n", &flores[i].sepLength, &flores[i].sepWidth, &flores[i].petLength, &flores[i].petWidth); //tem que usar [^,] pq a string da variedade não tem o \0 
             //printf("Flower %i: %f\t%f\t%f\t%f\n", i+1, flowers[i].petLength, flowers[i].petWidth, flowers[i].sepLength, flowers[i].sepWidth);
         }
 
@@ -175,7 +177,7 @@ int main() {
 
         infoRelatorio(flores,&dados, limiteSuperior,limiteInferior,incrementar);
         gerarRelatorio(&dados);
-        return 0;
+        return 0; // qnd arrumar tudo tem q tirar isso aq
         break;
     
     default:
@@ -228,14 +230,14 @@ int main() {
     }
 
     // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas (Melhor trocar isso dps)
-    flower mediaNaoSetosa = centro(grupos[0], tamanhos_dos_grupos[0], flores);
-    flower mediaSetosa = centro(grupos[1], tamanhos_dos_grupos[1], flores);
+    flower media0 = centro(grupos[0], tamanhos_dos_grupos[0], flores);
+    flower media1 = centro(grupos[1], tamanhos_dos_grupos[1], flores);
 
     // Junta os outros grupos aos dois primeiros
     for(int i = num_grupos; i > 1; i--){
         for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
             // Compara a DE entre os vértices de cada grupo pequeno separado com os centros dos dois grupos principais
-            if(distancia_euclideana(flores[grupos[i][j]], mediaNaoSetosa) <= distancia_euclideana(flores[grupos[i][j]], mediaSetosa)){
+            if(distancia_euclideana(flores[grupos[i][j]], media0) <= distancia_euclideana(flores[grupos[i][j]], media1)){
                 tamanhos_dos_grupos[0]++;
                 grupos[0] = realloc(grupos[0], sizeof(int)*tamanhos_dos_grupos[0]);
                 grupos[0][tamanhos_dos_grupos[0] - 1] = grupos[i][j];
@@ -249,33 +251,50 @@ int main() {
         free(grupos[i]);
     }
 
-    printf("Numero de grupos: %i\n", num_grupos + 1);
+    // Print pra ver os grupos antes da classificação
 
-    for(int i = 0; i <= num_grupos; i++){
-        printf("Grupo %i:\n", i);
-        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
-            printf("%i ", grupos[i][j]);
-        }
-        printf("\n");
-    }
-
-    // Essa parte está obsoleta, mas serve pra mostrar os centros de todos os grupos
-    
-    // flower* medias = malloc(sizeof(flower) * num_grupos);
+    // printf("Numero de grupos: %i\n", num_grupos + 1);
     // for(int i = 0; i <= num_grupos; i++){
-    //     medias[i] = centro(grupos[i], tamanhos_dos_grupos[i], flores);
-    //     printf("\nCentro Grupo[%i]:\nSepLength: %lf\nSepWidth: %lf\nPetLength: %lf\nPetWidth: %lf\n"
-    //     , i, medias[i].sepLength, medias[i].sepWidth, medias[i].petLength, medias[i].petWidth);
-    //     printf("===================");
+    //     printf("(%i) Grupo %i:\n", tamanhos_dos_grupos[i], i);
+    //     for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+    //         printf("%i ", grupos[i][j]);
+    //     }
+    //     printf("\n");
     // }
-    // free(medias);
+    
+    // Classifica o grupo com mais Setosas como o de Setosas e o outro como o de não Setosas
+    int *Setosas, *naoSetosas, tamSetosas = 0, tamNaoSetosas = 0;
+
+    if(contaSetosas(grupos[0], tamanhos_dos_grupos[0], flores) > contaSetosas(grupos[1], tamanhos_dos_grupos[1], flores)){
+        Setosas = grupos[0];
+        tamSetosas = tamanhos_dos_grupos[0];
+        naoSetosas = grupos[1];
+        tamNaoSetosas = tamanhos_dos_grupos[1];
+    } else {
+        Setosas = grupos[1];
+        tamSetosas = tamanhos_dos_grupos[1];
+        naoSetosas = grupos[0];
+        tamNaoSetosas = tamanhos_dos_grupos[0];
+    }
+    free(tamanhos_dos_grupos); // tamanho dos grupos não vai mais ser usado   
+
+    printf("(%i) Grupo Setosas:\n", tamSetosas);
+    for(int j = 0; j < tamSetosas; j++){
+        printf("%i ", Setosas[j]);
+    }
+    printf("\n");
+
+    printf("(%i) Grupo Nao Setosas:\n", tamNaoSetosas);
+    for(int j = 0; j < tamNaoSetosas; j++){
+        printf("%i ", naoSetosas[j]);
+    }
+    printf("\n");
 
     // Liberar a memória dos grupos
     for(int i = 0; i < num_grupos; i++){
         free(grupos[i]);
     }
     free(grupos);
-    free(tamanhos_dos_grupos);
 
     return 0;
 }
@@ -401,6 +420,18 @@ flower centro(int* grupo, int tam, flower flores[]){
 
 
     return media;
+}
+
+int contaSetosas(int* grupo, int tamanho, flower flores[]){
+    int num_Setosas = 0;
+
+    for(int i = 0; i < tamanho; i++){
+        if(flores[grupo[i]].tipo){
+            num_Setosas++;
+        }
+    }
+    
+    return num_Setosas;
 }
 
 void infoRelatorio(flower flores[], dados* dados, float limiteSuperior, float limiteInferior, float incrementar){ // Ficou meio merda essas variaveis aqui, pensando em uma solução ainda
