@@ -28,6 +28,7 @@ void close_file(int matriz[150][150], int total, float demaior, float demenor, f
 void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
 flower centro(int* grupo, int tam, flower flores[]);
 int contaSetosas(int* grupo, int tamanho, flower flores[]);
+float accuracy(int TP, int FP, int TN, int FN);
 void infoRelatorio(flower flores[150], dados* dados, float limiteSuperior, float limiteInferior, float incrementar);
 void gerarRelatorio(dados* dados);
 
@@ -87,7 +88,7 @@ int main() {
 
         for(int i = 0; i < 149; i++){
             for(int j = i+1; j < 150; j++){
-                if(matrix[i][j] <= 0.01){
+                if(matrix[i][j] <= 0.08){
                     matriz_adjacencia[i][j] = 1; //tem relacao
                     matriz_adjacencia[j][i] = 1;
                 }
@@ -290,6 +291,26 @@ int main() {
     }
     printf("\n");
 
+    for(int i = 0; i < tamSetosas; i++){
+        if(flores[Setosas[i]].tipo){
+            TP++;
+        } else {
+            FP++;
+        }
+    }
+
+    for(int i = 0; i < tamNaoSetosas; i++){
+        if(!flores[naoSetosas[i]].tipo){
+            TN++;
+        } else {
+            FN++;
+        }
+    }
+
+    printf("TP: %i\nFP: %i\nTN: %i\nFN: %i\n", TP, FP, TN, FN);
+
+    printf("Acuracia: %.2f%c", accuracy(TP, FP, TN, FN), 37);
+
     // Liberar a memória dos grupos
     for(int i = 0; i < num_grupos; i++){
         free(grupos[i]);
@@ -434,6 +455,12 @@ int contaSetosas(int* grupo, int tamanho, flower flores[]){
     return num_Setosas;
 }
 
+float accuracy(int TP, int FP, int TN, int FN){
+    float resultado = (float)(TP+TN)/(float)(TP+FP+TN+FN);
+    //return (float)(TP+TN)/(float)(TP+FP+TN+FN);
+    return resultado*100;
+}
+
 void infoRelatorio(flower flores[], dados* dados, float limiteSuperior, float limiteInferior, float incrementar){ // Ficou meio merda essas variaveis aqui, pensando em uma solução ainda
     float limiar = limiteInferior;
     
@@ -530,7 +557,7 @@ void gerarRelatorio(dados* dados){
     if(relatorio){
         fprintf(relatorio,"Limiar,Grupos\n");
         for(int i = 0; i < dados->tamanho; i++){
-           fprintf(relatorio,"%.2f, %i\n",dados->limiares[i], dados->tamanhoGrupos[i]);
+           fprintf(relatorio,"%.3f, %i\n",dados->limiares[i], dados->tamanhoGrupos[i]);
         }
     }
 
