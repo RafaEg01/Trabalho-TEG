@@ -96,19 +96,153 @@ int main() {
             }
         }
 
-        printf("Total de flores: %i\n", total);
-        denmaior = matrix[imaior][jmaior];
-        denmenor = matrix[imenor][jmenor];
-        printf("DEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
-        printf("DEmenor: %lf - (%i,%i)\n", demenor, imenor, jmenor);
-        printf("DENmaior: %lf - (%i,%i)\n", denmaior, imaior, jmaior);
-        printf("DENmenor: %lf - (%i,%i)\n", denmenor, imenor, jmenor);
+        // printf("Total de flores: %i\n", total);
+        // denmaior = matrix[imaior][jmaior];
+        // denmenor = matrix[imenor][jmenor];
+        // printf("DEmaior: %lf - (%i,%i)\n", demaior, imaior, jmaior);
+        // printf("DEmenor: %lf - (%i,%i)\n", demenor, imenor, jmenor);
+        // printf("DENmaior: %lf - (%i,%i)\n", denmaior, imaior, jmaior);
+        // printf("DENmenor: %lf - (%i,%i)\n", denmenor, imenor, jmenor);
 
         fclose(file);
 
         close_file(matriz_adjacencia,total, demaior,demenor,denmaior, denmenor);
         
+        // Aloca o primeiro grupo
+        int* tamanhos_dos_grupos = malloc(sizeof(int));
+        tamanhos_dos_grupos[0] = 0;
+        int** grupos = malloc(sizeof(int*));
+        *(grupos) = malloc(sizeof(int));
+
+        int num_grupos = 0;
+
+        do{
+            DFS((grupos + num_grupos), (tamanhos_dos_grupos + num_grupos), visitado, ponto, matriz_adjacencia); // Preenche o grupo
+
+            for (i = 0; i < 150; i++) { // Vê se tem algum vértice não visitado sobrando
+                if (!visitado[i]) { // Se sim, cria mais um grupo
+                    ponto = i;
+                    num_grupos++;
+                    grupos = realloc(grupos, sizeof(int*) * (num_grupos + 1));// Aloca um ponteiro de grupo
+                    *(grupos + num_grupos) = malloc(sizeof(int)); // Aloca um novo grupo
+                    tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * (num_grupos + 1));
+                    *(tamanhos_dos_grupos + num_grupos) = 0;
+                    break;
+                }
+            }
+
+        } // O while deve parar quando todo o vetor de visitados for true
+        while(visitado[ponto] != true);
+
+        // Organiza o vetor de tamanhos e o vetor de grupos, do maior para o menor (Selection sort)
+        for(int i = 0; i < num_grupos; i++){
+            int ind_maior = i;
+
+            for(int j = i + 1; j < num_grupos + 1; j++){
+                if(tamanhos_dos_grupos[j] > tamanhos_dos_grupos[ind_maior]){
+                    ind_maior = j;
+                }
+            }
+
+            int temp = tamanhos_dos_grupos[i];
+            int* ptemp = grupos[i]; // ponteiro temporario
+            tamanhos_dos_grupos[i] = tamanhos_dos_grupos[ind_maior];
+            grupos[i] = grupos[ind_maior];
+            tamanhos_dos_grupos[ind_maior] = temp;
+            grupos[ind_maior] = ptemp;
+        }
+
+        // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas (Melhor trocar isso dps)
+        flower media0 = centro(grupos[0], tamanhos_dos_grupos[0], flores);
+        flower media1 = centro(grupos[1], tamanhos_dos_grupos[1], flores);
+
+        // Junta os outros grupos aos dois primeiros
+        for(int i = num_grupos; i > 1; i--){
+            for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+                // Compara a DE entre os vértices de cada grupo pequeno separado com os centros dos dois grupos principais
+                if(distancia_euclideana(flores[grupos[i][j]], media0) <= distancia_euclideana(flores[grupos[i][j]], media1)){
+                    tamanhos_dos_grupos[0]++;
+                    grupos[0] = realloc(grupos[0], sizeof(int)*tamanhos_dos_grupos[0]);
+                    grupos[0][tamanhos_dos_grupos[0] - 1] = grupos[i][j];
+                    media0 = centro(grupos[0], tamanhos_dos_grupos[0], flores); // Recalcula o centro a cada ponto novo
+                } else {
+                    tamanhos_dos_grupos[1]++;
+                    grupos[1] = realloc(grupos[1], sizeof(int)*tamanhos_dos_grupos[1]);
+                    grupos[1][tamanhos_dos_grupos[1] - 1] = grupos[i][j];
+                    media1 = centro(grupos[1], tamanhos_dos_grupos[1], flores);
+                }
+            }
+            num_grupos--;
+            free(grupos[i]);
+        }
+
+        // Print pra ver os grupos antes da classificação
+
+        // printf("Numero de grupos: %i\n", num_grupos + 1);
+        // for(int i = 0; i <= num_grupos; i++){
+        //     printf("(%i) Grupo %i:\n", tamanhos_dos_grupos[i], i);
+        //     for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
+        //         printf("%i ", grupos[i][j]);
+        //     }
+        //     printf("\n");
+        // }
+        
+        // Classifica o grupo com mais Setosas como o de Setosas e o outro como o de não Setosas
+        int *Setosas, *naoSetosas, tamSetosas = 0, tamNaoSetosas = 0;
+
+        if(contaSetosas(grupos[0], tamanhos_dos_grupos[0], flores) > contaSetosas(grupos[1], tamanhos_dos_grupos[1], flores)){
+            Setosas = grupos[0];
+            tamSetosas = tamanhos_dos_grupos[0];
+            naoSetosas = grupos[1];
+            tamNaoSetosas = tamanhos_dos_grupos[1];
+        } else {
+            Setosas = grupos[1];
+            tamSetosas = tamanhos_dos_grupos[1];
+            naoSetosas = grupos[0];
+            tamNaoSetosas = tamanhos_dos_grupos[0];
+        }
+        free(tamanhos_dos_grupos); // tamanho dos grupos não vai mais ser usado   
+
+        printf("(%i) Grupo Setosas:\n", tamSetosas);
+        for(int j = 0; j < tamSetosas; j++){
+            printf("%i ", Setosas[j]);
+        }
+        printf("\n");
+
+        printf("(%i) Grupo Nao Setosas:\n", tamNaoSetosas);
+        for(int j = 0; j < tamNaoSetosas; j++){
+            printf("%i ", naoSetosas[j]);
+        }
+        printf("\n");
+
+        for(int i = 0; i < tamSetosas; i++){
+            if(flores[Setosas[i]].tipo){
+                TP++;
+            } else {
+                FP++;
+            }
+        }
+
+        for(int i = 0; i < tamNaoSetosas; i++){
+            if(!flores[naoSetosas[i]].tipo){
+                TN++;
+            } else {
+                FN++;
+            }
+        }
+
+        printf("\nTP: %i\tFP: %i\nTN: %i\tFN: %i\n", TP, FP, FN, TN);
+
+        printf("\nAcuracia: %.2f%c", accuracy(TP, FP, TN, FN), 37);
+
+        // Liberar a memória dos grupos
+        for(int i = 0; i < num_grupos; i++){
+            free(grupos[i]);
+        }
+        free(grupos);
+         
         break;
+        
     case 2:
     // Releitura do grafo
 
@@ -143,7 +277,7 @@ int main() {
 
         fclose(txtGrafo);
         
-        return 0; // qnd arrumar tudo tem q tirar isso aq
+
         break;
     
     case 3:
@@ -184,146 +318,13 @@ int main() {
 
         infoRelatorio(flores,&dados, limiteSuperior,limiteInferior,incrementar);
         gerarRelatorio(&dados);
-        return 0; // qnd arrumar tudo tem q tirar isso aq
+
         break;
     
     default:
         printf("\nOpçao invalida\nTente novamente");
         break;
     }
-
-    // Aloca o primeiro grupo
-    int* tamanhos_dos_grupos = malloc(sizeof(int));
-    tamanhos_dos_grupos[0] = 0;
-    int** grupos = malloc(sizeof(int*));
-    *(grupos) = malloc(sizeof(int));
-
-    int num_grupos = 0;
-
-    do{
-        DFS((grupos + num_grupos), (tamanhos_dos_grupos + num_grupos), visitado, ponto, matriz_adjacencia); // Preenche o grupo
-
-        for (i = 0; i < 150; i++) { // Vê se tem algum vértice não visitado sobrando
-            if (!visitado[i]) { // Se sim, cria mais um grupo
-                ponto = i;
-                num_grupos++;
-                grupos = realloc(grupos, sizeof(int*) * (num_grupos + 1));// Aloca um ponteiro de grupo
-                *(grupos + num_grupos) = malloc(sizeof(int)); // Aloca um novo grupo
-                tamanhos_dos_grupos = realloc(tamanhos_dos_grupos, sizeof(int) * (num_grupos + 1));
-                *(tamanhos_dos_grupos + num_grupos) = 0;
-                break;
-            }
-        }
-
-    } // O while deve parar quando todo o vetor de visitados for true
-    while(visitado[ponto] != true);
-
-    // Organiza o vetor de tamanhos e o vetor de grupos, do maior para o menor (Selection sort)
-    for(int i = 0; i < num_grupos; i++){
-        int ind_maior = i;
-
-        for(int j = i + 1; j < num_grupos + 1; j++){
-            if(tamanhos_dos_grupos[j] > tamanhos_dos_grupos[ind_maior]){
-                ind_maior = j;
-            }
-        }
-
-        int temp = tamanhos_dos_grupos[i];
-        int* ptemp = grupos[i]; // ponteiro temporario
-        tamanhos_dos_grupos[i] = tamanhos_dos_grupos[ind_maior];
-        grupos[i] = grupos[ind_maior];
-        tamanhos_dos_grupos[ind_maior] = temp;
-        grupos[ind_maior] = ptemp;
-    }
-
-    // Convencionamos que o grupos[0] (maior) é o grupo de não setosas e o grupos[1] (segundo maior) é o grupo de setosas (Melhor trocar isso dps)
-    flower media0 = centro(grupos[0], tamanhos_dos_grupos[0], flores);
-    flower media1 = centro(grupos[1], tamanhos_dos_grupos[1], flores);
-
-    // Junta os outros grupos aos dois primeiros
-    for(int i = num_grupos; i > 1; i--){
-        for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
-            // Compara a DE entre os vértices de cada grupo pequeno separado com os centros dos dois grupos principais
-            if(distancia_euclideana(flores[grupos[i][j]], media0) <= distancia_euclideana(flores[grupos[i][j]], media1)){
-                tamanhos_dos_grupos[0]++;
-                grupos[0] = realloc(grupos[0], sizeof(int)*tamanhos_dos_grupos[0]);
-                grupos[0][tamanhos_dos_grupos[0] - 1] = grupos[i][j];
-                media0 = centro(grupos[0], tamanhos_dos_grupos[0], flores); // Recalcula o centro a cada ponto novo
-            } else {
-                tamanhos_dos_grupos[1]++;
-                grupos[1] = realloc(grupos[1], sizeof(int)*tamanhos_dos_grupos[1]);
-                grupos[1][tamanhos_dos_grupos[1] - 1] = grupos[i][j];
-                media1 = centro(grupos[1], tamanhos_dos_grupos[1], flores);
-            }
-        }
-        num_grupos--;
-        free(grupos[i]);
-    }
-
-    // Print pra ver os grupos antes da classificação
-
-    // printf("Numero de grupos: %i\n", num_grupos + 1);
-    // for(int i = 0; i <= num_grupos; i++){
-    //     printf("(%i) Grupo %i:\n", tamanhos_dos_grupos[i], i);
-    //     for(int j = 0; j < tamanhos_dos_grupos[i]; j++){
-    //         printf("%i ", grupos[i][j]);
-    //     }
-    //     printf("\n");
-    // }
-    
-    // Classifica o grupo com mais Setosas como o de Setosas e o outro como o de não Setosas
-    int *Setosas, *naoSetosas, tamSetosas = 0, tamNaoSetosas = 0;
-
-    if(contaSetosas(grupos[0], tamanhos_dos_grupos[0], flores) > contaSetosas(grupos[1], tamanhos_dos_grupos[1], flores)){
-        Setosas = grupos[0];
-        tamSetosas = tamanhos_dos_grupos[0];
-        naoSetosas = grupos[1];
-        tamNaoSetosas = tamanhos_dos_grupos[1];
-    } else {
-        Setosas = grupos[1];
-        tamSetosas = tamanhos_dos_grupos[1];
-        naoSetosas = grupos[0];
-        tamNaoSetosas = tamanhos_dos_grupos[0];
-    }
-    free(tamanhos_dos_grupos); // tamanho dos grupos não vai mais ser usado   
-
-    printf("(%i) Grupo Setosas:\n", tamSetosas);
-    for(int j = 0; j < tamSetosas; j++){
-        printf("%i ", Setosas[j]);
-    }
-    printf("\n");
-
-    printf("(%i) Grupo Nao Setosas:\n", tamNaoSetosas);
-    for(int j = 0; j < tamNaoSetosas; j++){
-        printf("%i ", naoSetosas[j]);
-    }
-    printf("\n");
-
-    for(int i = 0; i < tamSetosas; i++){
-        if(flores[Setosas[i]].tipo){
-            TP++;
-        } else {
-            FP++;
-        }
-    }
-
-    for(int i = 0; i < tamNaoSetosas; i++){
-        if(!flores[naoSetosas[i]].tipo){
-            TN++;
-        } else {
-            FN++;
-        }
-    }
-
-    printf("TP: %i\nFP: %i\nTN: %i\nFN: %i\n", TP, FP, TN, FN);
-
-    printf("Acuracia: %.2f%c", accuracy(TP, FP, TN, FN), 37);
-
-    // Liberar a memória dos grupos
-    for(int i = 0; i < num_grupos; i++){
-        free(grupos[i]);
-    }
-    free(grupos);
 
     return 0;
 }
