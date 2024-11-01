@@ -25,7 +25,7 @@ void preencher_distancia_euclideana(float matriz[150][150], flower flores[]);
 void achamaioremenor(float *maior, float *menor, float matriz[150][150], int *a, int *b, int *c, int *d);
 void distancia_normalizada(float *maior, float *menor, float matriz[150][150]);
 void printa_matriz(float matriz[150][150]);
-void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor);
+void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor, int imaior, int jmaior, int imenor, int jmenor);
 void DFS(int **grupo, int *tam, bool visitado[150], int ponto, int matriz[150][150]);
 flower centro(int* grupo, int tam, flower flores[]);
 int contaSetosas(int* grupo, int tamanho, flower flores[]);
@@ -106,7 +106,7 @@ int main() {
 
         fclose(file);
 
-        close_file(matriz_adjacencia,total, demaior,demenor,denmaior, denmenor);
+        close_file(matriz_adjacencia,total, demaior,demenor,denmaior, denmenor, imaior, jmaior, imenor, jmenor);
         
         // Aloca o primeiro grupo
         int* tamanhos_dos_grupos = malloc(sizeof(int));
@@ -392,16 +392,15 @@ void printa_matriz(float matriz[150][150]){
     }
 }
 
-// Tem que lembrar de passar o i e j dos valores tbm
-void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor){
+void close_file(int matriz[150][150], int total, float demaior, float demenor, float denmaior, float denmenor, int imaior, int jmaior, int imenor, int jmenor){
     FILE *close = fopen("grafo.txt", "w");
 
     if(close){
         fprintf(close,"%i\n", total);
-        fprintf(close,"Maior Distância Euclideana: %f\n", demaior);
-        fprintf(close,"Menor Distância Euclideana: %f\n", demenor);
-        fprintf(close,"Maior Distância Euclideana Normalizada: %f\n", denmaior);
-        fprintf(close,"Menor Distância Euclideana Normalizada: %f", denmenor);
+        fprintf(close,"Maior Distância Euclideana: %f (%i,%i)\n", demaior, imaior, jmaior);
+        fprintf(close,"Menor Distância Euclideana: %f (%i,%i)\n", demenor, imenor, jmenor);
+        fprintf(close,"Maior Distância Euclideana Normalizada: %f (%i,%i)\n", denmaior, imaior, jmaior);
+        fprintf(close,"Menor Distância Euclideana Normalizada: %f (%i,%i)", denmenor, imenor, jmenor);
         for(int i = 0; i < 150; i++){
             for(int j = i+1; j < 150; j++){
                 if(matriz[i][j] != 0)
